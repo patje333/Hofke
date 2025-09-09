@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VisualBoard | Organize Ideas Visually</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leader-line-new/leader-line.min.js"></script>
+  <style>
+    body { overflow: hidden; }
+    .board {
+      background-color: #f5f5f5;
+      background-image: linear-gradient(#e5e5e5 1px, transparent 1px),
+        linear-gradient(90deg, #e5e5e5 1px, transparent 1px);
+      background-size: 20px 20px;
+      width: 4000px; /* huge workspace */
+      height: 3000px;
+      position: relative;
+    }
+    .draggable {
+      touch-action: none;
+      user-select: none;
+      position: absolute;
+    }
+    .note {
+      width: 200px;
+      min-height: 150px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 12px;
+      resize: both;
+      overflow: auto;
+    }
+    .note textarea {
+      width: 100%;
+      min-height: 100px;
+      border: none;
+      resize: none;
+      outline: none;
+    }
+    .folder {
+      margin-bottom: 8px;
+    }
+    .folder > div {
+      cursor: pointer;
+    }
+    .hidden-content {
+      display: none;
+      margin-left: 16px;
+    }
+    .connector-mode {
+      border: 2px dashed red;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 flex h-screen">
+  <!-- Sidebar for folders -->
+  <aside class="w-64 bg-white shadow-md p-4 overflow-y-auto">
+    <h2 class="text-lg font-bold mb-4">Folders</h2>
+    <div id="folders"></div>
+    <button id="add-folder" class="mt-4 px-3 py-2 bg-indigo-600 text-white rounded">+ Add Folder</button>
+  </aside>
+
+  <!-- Main workspace wrapper -->
+  <main class="flex-1 overflow-auto">
+    <div class="p-2 bg-white flex space-x-2 shadow">
+      <button id="add-note" class="px-3 py-1 bg-gray-200 rounded">+ Note</button>
+      <button id="add-url" class="px-3 py-1 bg-gray-200 rounded">+ URL / Image</button>
+      <button id="connector-toggle" class="px-3 py-1 bg-gray-200 rounded">🔗 Connector Mode</button>
+    </div>
+    <div id="board" class="board"></div>
+  </main>
+
+  <script>
+    const board = document.getElementById('board');
+    let connectorMode = false;
+    let firstElement = null;
+    const connections = [];
+
+    // Make element draggable
+    function makeDraggable(el) {
+      interact(el).draggable({
+        inertia: true,
+        listeners: { move: dragMoveListener }
+      });
+    }
+
+    function dragMoveListener(event) {
+      const target = event.target;
+      const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+      const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+      target.style.transform = `translate(${x}px, ${y}px)`;
+      target.setAttribute('data-x', x);
+      target.setAttribute('data-y', y);
+      // update connected lines
+      connections.forEach(c => c.position());
+    }
+
+    // Add Note
+    document.getElementById('add-note').onclick = () => {
+      const note = document.createElement('div');
+      note.className = 'draggable note';
+      note.innerHTML = `<textarea placeholder="Type your note..."></textarea>`;
+      board.appendChild(note);
+      makeDraggable(note);
+      note.style.transform = 'translate(100px, 100px)';
+      note.setAttribute('data-x', 100);
+      note.setAttribute('data-y', 100);
+      note.onclick = () => handleClickForConnector(note);
+    };
+
+    // Add URL/Image
+    document.getElementById('add-url').onclick = () => {
+      const url = prompt('Enter URL or image link:');
+      if (!url) return;
+      const card = document.createElement('div');
+      card.className = 'draggable note';
+      if (url.match(/\.(jpeg|jpg|gif|png)$/)) {
+        card.innerHTML = `<img src="${url}" class="w-full rounded" />`;
+      } else {
+        card.innerHTML = `<a href="${url}" target="_blank" class="text-blue-600 underline">${url}</a>`;
+      }
+      board.appendChild(card);
+      makeDraggable(card);
+      card.style.transform = 'translate(150px, 150px)';
+      card.setAttribute('data-x', 150);
+      card.setAttribute('data-y', 150);
+      card.onclick = () => handleClickForConnector(card);
+    };
+
+    // Connector mode toggle
+    document.getElementById('connector-toggle').onclick = (e) => {
+      connectorMode = !connectorMode;
+      e.target.classList.toggle('bg-red-300', connectorMode);
+    };
+
+    function handleClickForConnector(el) {
+      if (!connectorMode) return;
+      if (!firstElement) {
+        firstElement = el;
+        el.classList.add('connector-mode');
+      } else {
+        const line = new LeaderLine(firstElement, el, { color: 'red', path: 'straight' });
+        connections.push(line);
+        firstElement.classList.remove('connector-mode');
+        firstElement = null;
+      }
+    }
+
+    // Folders
+    const folderContainer = document.getElementById('folders');
+    document.getElementById('add-folder').onclick = () => {
+      const name = prompt('Folder name:');
+      if (!name) return;
+      const folder = document.createElement('div');
+      folder.className = 'folder';
+      folder.innerHTML = `<div class='font-medium'>📁 ${name}</div><div class='hidden-content'></div><button class='text-sm text-blue-600 ml-6'>+ Subfolder</button>`;
+      folderContainer.appendChild(folder);
+      const content = folder.querySelector('.hidden-content');
+      folder.firstChild.onclick = () => {
+        content.style.display = content.style.display === 'none' ? 'block' : 'none';
+      };
+      folder.querySelector('button').onclick = () => {
+        const subName = prompt('Subfolder name:');
+        if (!subName) return;
+        const sub = document.createElement('div');
+        sub.textContent = '📂 ' + subName;
+        content.appendChild(sub);
+      };
+    };
+  </script>
+</body>
+</html>
