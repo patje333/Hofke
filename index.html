@@ -1,175 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VisualBoard | Organize Ideas Visually</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/leader-line-new/leader-line.min.js"></script>
-  <style>
-    body { overflow: hidden; }
-    .board {
-      background-color: #f5f5f5;
-      background-image: linear-gradient(#e5e5e5 1px, transparent 1px),
-        linear-gradient(90deg, #e5e5e5 1px, transparent 1px);
-      background-size: 20px 20px;
-      width: 4000px; /* huge workspace */
-      height: 3000px;
-      position: relative;
-    }
-    .draggable {
-      touch-action: none;
-      user-select: none;
-      position: absolute;
-    }
-    .note {
-      width: 200px;
-      min-height: 150px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      padding: 12px;
-      resize: both;
-      overflow: auto;
-    }
-    .note textarea {
-      width: 100%;
-      min-height: 100px;
-      border: none;
-      resize: none;
-      outline: none;
-    }
-    .folder {
-      margin-bottom: 8px;
-    }
-    .folder > div {
-      cursor: pointer;
-    }
-    .hidden-content {
-      display: none;
-      margin-left: 16px;
-    }
-    .connector-mode {
-      border: 2px dashed red;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VisualBoard Enhanced Pro</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leader-line-new/leader-line.min.js"></script>
+<style>
+body { margin:0; font-family:sans-serif; display:flex; height:100vh; overflow:hidden; }
+aside { width:250px; background:#fff; padding:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); overflow-y:auto; }
+main { flex:1; overflow:auto; position:relative; background:#f0f0f0; }
+.board { width:2000px; height:1500px; position:relative; }
+.note { position:absolute; width:250px; min-height:150px; background:#fff; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.2); display:flex; flex-direction:column; }
+.note-header { display:flex; justify-content:space-between; align-items:center; padding:4px; background:#eee; cursor:move; border-radius:6px 6px 0 0; }
+.note-toolbar { display:flex; gap:2px; padding:2px 4px; background:#f9f9f9; flex-wrap:wrap; font-size:12px; }
+.note-content { flex:1; padding:4px; overflow:auto; min-height:50px; outline:none; }
+.preview { margin-top:4px; padding:4px; background:#f9f9f9; border:1px solid #ccc; border-radius:4px; font-size:12px; }
+.folder { padding:4px; cursor:pointer; border-radius:4px; margin-bottom:4px; }
+.folder:hover { background:#e0e7ff; }
+</style>
 </head>
-<body class="bg-gray-100 flex h-screen">
-  <!-- Sidebar for folders -->
-  <aside class="w-64 bg-white shadow-md p-4 overflow-y-auto">
-    <h2 class="text-lg font-bold mb-4">Folders</h2>
-    <div id="folders"></div>
-    <button id="add-folder" class="mt-4 px-3 py-2 bg-indigo-600 text-white rounded">+ Add Folder</button>
-  </aside>
+<body>
 
-  <!-- Main workspace wrapper -->
-  <main class="flex-1 overflow-auto">
-    <div class="p-2 bg-white flex space-x-2 shadow">
-      <button id="add-note" class="px-3 py-1 bg-gray-200 rounded">+ Note</button>
-      <button id="add-url" class="px-3 py-1 bg-gray-200 rounded">+ URL / Image</button>
-      <button id="connector-toggle" class="px-3 py-1 bg-gray-200 rounded">🔗 Connector Mode</button>
+<aside>
+<h2 class="font-bold mb-2">Boards</h2>
+<div id="folders"></div>
+<button id="addFolder" class="mt-2 p-2 bg-indigo-600 text-white rounded">+ Board</button>
+<button id="saveBtn" class="mt-2 p-2 bg-green-600 text-white rounded">💾 Save</button>
+<button id="loadBtn" class="mt-2 p-2 bg-yellow-600 text-white rounded">📂 Load</button>
+</aside>
+
+<main>
+<div style="margin:10px 0;">
+<button id="addNote">+ Note</button>
+<button id="connectorToggle">Connector</button>
+<input type="color" id="arrowColor" title="Arrow Color" value="#ff0000">
+<select id="arrowType">
+<option value="straight">Straight</option>
+<option value="dotted">Dotted</option>
+<option value="arrow-small">Small Arrow</option>
+</select>
+</div>
+<div id="boardContainer"></div>
+</main>
+
+<script>
+const BIN_ID = '68c053e6d0ea881f40779ed8';
+const SECRET_KEY = ''; // add key if private bin
+
+let boards = {};
+let activeBoard = null;
+let firstNote = null;
+let connectorMode = false;
+let scale = 1;
+
+// Board creation
+function createBoard(name){
+  if(boards[name]) return;
+  const board=document.createElement('div'); board.className='board'; board.style.display='none';
+  boards[name]={element:board, connections:[]};
+  document.getElementById('boardContainer').appendChild(board);
+}
+
+// Switch board
+function switchBoard(name){
+  if(activeBoard) activeBoard.element.style.display='none';
+  activeBoard = boards[name];
+  activeBoard.element.style.display='block';
+}
+
+// Add note
+function addNote(text='', x=50, y=50, bg='#fff'){
+  if(!activeBoard) return alert('Select a board');
+  const note=document.createElement('div'); note.className='note';
+  note.style.left=x+'px'; note.style.top=y+'px'; note.style.backgroundColor=bg;
+
+  note.innerHTML=`
+  <div class="note-header">
+    <span>Note</span>
+    <div>
+      <button class="minimize-btn">_</button>
+      <input type="color" class="note-bg-picker" value="${bg}" title="Background Color">
     </div>
-    <div id="board" class="board"></div>
-  </main>
+  </div>
+  <div class="note-toolbar">
+    <button onclick="execCmd(this,'bold')"><b>B</b></button>
+    <button onclick="execCmd(this,'italic')"><i>I</i></button>
+    <button onclick="execCmd(this,'underline')"><u>U</u></button>
+    <button onclick="execCmd(this,'insertUnorderedList')">• List</button>
+    <button onclick="execCmd(this,'insertOrderedList')">1. List</button>
+    <button onclick="insertLink()">Link</button>
+    <select onchange="execCmd(this,'fontSize',this.value)">
+      <option value="3">Normal</option>
+      <option value="4">Medium</option>
+      <option value="5">Large</option>
+    </select>
+    <input type="color" onchange="execCmd(this,'foreColor',this.value)" title="Text Color">
+  </div>
+  <div class="note-content" contenteditable="true">${text}</div>
+  <div class="preview"></div>
+  `;
 
-  <script>
-    const board = document.getElementById('board');
-    let connectorMode = false;
-    let firstElement = null;
-    const connections = [];
+  activeBoard.element.appendChild(note);
 
-    // Make element draggable
-    function makeDraggable(el) {
-      interact(el).draggable({
-        inertia: true,
-        listeners: { move: dragMoveListener }
-      });
-    }
+  const header = note.querySelector('.note-header');
+  interact(note).draggable({
+    allowFrom: header,
+    listeners:{ move: dragMoveListener }
+  }).resizable({
+    edges:{left:true,right:true,bottom:true,top:true},
+    listeners:{ move: resizeMoveListener }
+  });
 
-    function dragMoveListener(event) {
-      const target = event.target;
-      const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-      const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-      target.style.transform = `translate(${x}px, ${y}px)`;
-      target.setAttribute('data-x', x);
-      target.setAttribute('data-y', y);
-      // update connected lines
-      connections.forEach(c => c.position());
-    }
+  const minimizeBtn = note.querySelector('.minimize-btn');
+  const contentDiv = note.querySelector('.note-content');
+  const toolbar = note.querySelector('.note-toolbar');
+  minimizeBtn.onclick=()=>{
+    if(contentDiv.style.display==='none'){ contentDiv.style.display='block'; toolbar.style.display='flex'; }
+    else{ contentDiv.style.display='none'; toolbar.style.display='none'; }
+  }
 
-    // Add Note
-    document.getElementById('add-note').onclick = () => {
-      const note = document.createElement('div');
-      note.className = 'draggable note';
-      note.innerHTML = `<textarea placeholder="Type your note..."></textarea>`;
-      board.appendChild(note);
-      makeDraggable(note);
-      note.style.transform = 'translate(100px, 100px)';
-      note.setAttribute('data-x', 100);
-      note.setAttribute('data-y', 100);
-      note.onclick = () => handleClickForConnector(note);
-    };
+  const colorPicker = note.querySelector('.note-bg-picker');
+  colorPicker.oninput=(e)=>note.style.backgroundColor=e.target.value;
 
-    // Add URL/Image
-    document.getElementById('add-url').onclick = () => {
-      const url = prompt('Enter URL or image link:');
-      if (!url) return;
-      const card = document.createElement('div');
-      card.className = 'draggable note';
-      if (url.match(/\.(jpeg|jpg|gif|png)$/)) {
-        card.innerHTML = `<img src="${url}" class="w-full rounded" />`;
-      } else {
-        card.innerHTML = `<a href="${url}" target="_blank" class="text-blue-600 underline">${url}</a>`;
-      }
-      board.appendChild(card);
-      makeDraggable(card);
-      card.style.transform = 'translate(150px, 150px)';
-      card.setAttribute('data-x', 150);
-      card.setAttribute('data-y', 150);
-      card.onclick = () => handleClickForConnector(card);
-    };
+  note.onclick=()=>handleConnectorClick(note);
 
-    // Connector mode toggle
-    document.getElementById('connector-toggle').onclick = (e) => {
-      connectorMode = !connectorMode;
-      e.target.classList.toggle('bg-red-300', connectorMode);
-    };
+  contentDiv.addEventListener('input',()=>generatePlaceholderPreview(contentDiv,note.querySelector('.preview')));
+  generatePlaceholderPreview(contentDiv,note.querySelector('.preview'));
+}
 
-    function handleClickForConnector(el) {
-      if (!connectorMode) return;
-      if (!firstElement) {
-        firstElement = el;
-        el.classList.add('connector-mode');
-      } else {
-        const line = new LeaderLine(firstElement, el, { color: 'red', path: 'straight' });
-        connections.push(line);
-        firstElement.classList.remove('connector-mode');
-        firstElement = null;
-      }
-    }
+// Rich text commands
+function execCmd(el,cmd,val=null){ document.execCommand(cmd,false,val); }
+function insertLink(){ const url=prompt('Enter URL'); if(url) document.execCommand('createLink',false,url); }
 
-    // Folders
-    const folderContainer = document.getElementById('folders');
-    document.getElementById('add-folder').onclick = () => {
-      const name = prompt('Folder name:');
-      if (!name) return;
-      const folder = document.createElement('div');
-      folder.className = 'folder';
-      folder.innerHTML = `<div class='font-medium'>📁 ${name}</div><div class='hidden-content'></div><button class='text-sm text-blue-600 ml-6'>+ Subfolder</button>`;
-      folderContainer.appendChild(folder);
-      const content = folder.querySelector('.hidden-content');
-      folder.firstChild.onclick = () => {
-        content.style.display = content.style.display === 'none' ? 'block' : 'none';
-      };
-      folder.querySelector('button').onclick = () => {
-        const subName = prompt('Subfolder name:');
-        if (!subName) return;
-        const sub = document.createElement('div');
-        sub.textContent = '📂 ' + subName;
-        content.appendChild(sub);
-      };
-    };
-  </script>
+// Drag and resize listeners
+function dragMoveListener(event){
+  const target=event.target;
+  const x=(parseFloat(target.getAttribute('data-x'))||0)+event.dx/scale;
+  const y=(parseFloat(target.getAttribute('data-y'))||0)+event.dy/scale;
+  target.style.transform=`translate(${x}px,${y}px)`;
+  target.setAttribute('data-x',x); target.setAttribute('data-y',y);
+  activeBoard.connections.forEach(c=>c.position());
+}
+function resizeMoveListener(event){
+  const target=event.target;
+  let w=parseFloat(target.style.width)||target.offsetWidth;
+  let h=parseFloat(target.style.height)||target.offsetHeight;
+  w+=event.deltaRect.width;
+  h+=event.deltaRect.height;
+  target.style.width=w+'px'; target.style.height=h+'px';
+}
+
+// Placeholder URL preview
+function generatePlaceholderPreview(contentDiv,preview){
+  const urlRegex=/(https?:\/\/[^\s]+)/g;
+  const urls=contentDiv.innerText.match(urlRegex);
+  preview.innerHTML='';
+  if(urls) urls.forEach(url=>{
+    const div=document.createElement('div');
+    div.innerHTML=`<strong>Preview Title</strong><br>${url}<br><em>Placeholder description</em>`;
+    preview.appendChild(div);
+  });
+}
+
+// Connector mode (straight arrows only)
+function handleConnectorClick(note){
+  if(!connectorMode) return;
+  if(!firstNote){ firstNote=note; note.style.border='2px dashed red'; }
+  else{
+    const color=document.getElementById('arrowColor').value||'red';
+    const type=document.getElementById('arrowType').value;
+    const opts={color:color, path:'straight', startPlug:type.includes('arrow')?'disc':null};
+    const line=new LeaderLine(firstNote,note,opts);
+    activeBoard.connections.push(line);
+    firstNote.style.border=''; firstNote=null;
+  }
+}
+
+// Zoom
+document.addEventListener('wheel',e=>{
+  if(e.ctrlKey){ e.preventDefault(); scale+=e.deltaY<0?0.05:-0.05; scale=Math.min(Math.max(scale,0.5),3);
+    if(activeBoard) activeBoard.element.style.transform=`scale(${scale})`; }
+},{passive:false});
+
+// Folder buttons
+document.getElementById('addFolder').onclick=()=>{
+  const name=prompt('Board name:'); if(!name) return;
+  createBoard(name);
+  const folder=document.createElement('div'); folder.className='folder'; folder.textContent=name;
+  folder.onclick=()=>switchBoard(name);
+  document.getElementById('folders').appendChild(folder);
+  switchBoard(name);
+};
+
+// Other buttons
+document.getElementById('addNote').onclick=()=>addNote();
+document.getElementById('connectorToggle').onclick=()=>{connectorMode=!connectorMode; alert('Connector mode: '+connectorMode);}
+
+// JSONBin Integration
+async function saveBoards(){
+  const boardsData={};
+  Object.keys(boards).forEach(name=>{
+    const b=boards[name];
+    boardsData[name]={ notes:Array.from(b.element.querySelectorAll('.note')).map(n=>({
+      html:n.querySelector('.note-content').innerHTML,
+      x:parseFloat(n.getAttribute('data-x'))||0,
+      y:parseFloat(n.getAttribute('data-y'))||0,
+      bg:n.style.backgroundColor||'#fff'
+    }))};
+  });
+  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
+    method:'PUT',
+    headers:{ 'Content-Type':'application/json', 'X-Master-Key':SECRET_KEY, 'X-Bin-Versioning':'false' },
+    body:JSON.stringify({boards:boardsData})
+  });
+  alert('Saved!');
+}
+
+async function loadBoards(){
+  const res=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{
+    headers:{ 'X-Master-Key': SECRET_KEY }
+  });
+  const data=await res.json();
+  const boardsData=data.record.boards||{};
+  document.getElementById('boardContainer').innerHTML='';
+  document.getElementById('folders').innerHTML='';
+  boards={}; activeBoard=null;
+  Object.keys(boardsData).forEach(name=>{
+    createBoard(name);
+    const folder=document.createElement('div'); folder.className='folder'; folder.textContent=name;
+    folder.onclick=()=>switchBoard(name); document.getElementById('folders').appendChild(folder);
+    switchBoard(name);
+    boardsData[name].notes.forEach(n=>addNote(n.html,n.x,n.y,n.bg));
+  });
+}
+
+document.getElementById('saveBtn').onclick=saveBoards;
+document.getElementById('loadBtn').onclick=loadBoards;
+
+</script>
 </body>
 </html>
