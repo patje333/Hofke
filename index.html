@@ -29,6 +29,11 @@
   <header class="mb-10 text-center">
     <h1 class="text-3xl font-bold text-indigo-800 mb-1">Shared Article Board</h1>
   </header>
+<div class="flex justify-center mb-6">
+  <button onclick="setPassword()" class="flex items-center bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 px-4 rounded-full shadow-md text-sm">
+    <i data-feather="lock" class="mr-2"></i> Set Password
+  </button>
+</div>
 
   <div class="flex justify-center mb-6">
     <button onclick="openModal()" class="add-article-btn flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-full shadow-md text-sm">
@@ -110,6 +115,30 @@
 </div>
 
 <script>
+  // Password Protection Feature
+function setPassword() {
+  const pwd = prompt("Enter a new password for this site (leave blank to cancel):");
+  if (pwd) {
+    localStorage.setItem('sitePassword', pwd);
+    alert("Password set! Reload the page to test it.");
+  }
+}
+
+// Check password on page load
+window.addEventListener('load', () => {
+  const pwd = localStorage.getItem('sitePassword');
+  if (pwd) {
+    let userInput = prompt("Enter the site password to view content:");
+    while (userInput !== pwd) {
+      if (userInput === null) {  // user pressed cancel
+        document.body.innerHTML = "<h2 class='text-center mt-20 text-red-500'>Access denied</h2>";
+        return;
+      }
+      userInput = prompt("Wrong password. Please enter the correct password:");
+    }
+  }
+});
+
 AOS.init(); feather.replace();
 
 const JSON_URL = "https://api.jsonbin.io/v3/b/68c0480043b1c97be93c9ab7/latest";
