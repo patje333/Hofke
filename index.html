@@ -1,238 +1,265 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VisualBoard Pro</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Shared Article Board</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leader-line-new/leader-line.min.js"></script>
+<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="https://unpkg.com/feather-icons"></script>
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+
 <style>
-body { margin:0; font-family: 'Inter', sans-serif; display:flex; height:100vh; overflow:hidden; background:#f4f5f7; }
-aside { width:260px; background:#fff; padding:16px; box-shadow:2px 0 12px rgba(0,0,0,0.08); display:flex; flex-direction:column; }
-aside h2 { font-weight:700; font-size:1.2rem; margin-bottom:12px; }
-aside .folders { flex:1; overflow-y:auto; }
-aside .folder { padding:10px; cursor:pointer; border-radius:6px; margin-bottom:6px; transition:0.2s; }
-aside .folder:hover { background:#e0e7ff; }
-aside button { margin-top:8px; padding:8px; border:none; border-radius:6px; font-weight:500; cursor:pointer; transition:0.2s; }
-aside button:hover { opacity:0.9; }
-
-main { flex:1; overflow:auto; position:relative; }
-.topbar { display:flex; align-items:center; gap:8px; padding:12px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.05); border-bottom:1px solid #e5e7eb; }
-.boardContainer { width:2000px; height:1500px; position:relative; margin:10px; }
-
-.note { position:absolute; width:260px; min-height:150px; background:#fff; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.12); display:flex; flex-direction:column; transition:0.2s; }
-.note-header { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; cursor:move; border-radius:8px 8px 0 0; font-weight:600; color:#fff; }
-.note-toolbar { display:flex; flex-wrap:wrap; gap:4px; padding:4px 8px; background:#f9fafb; font-size:12px; border-bottom:1px solid #e5e7eb; }
-.note-content { flex:1; padding:8px; overflow:auto; min-height:50px; outline:none; }
-.preview { margin-top:4px; padding:4px; background:#f1f3f5; border-radius:4px; font-size:12px; border:1px solid #e5e7eb; }
-.note button { cursor:pointer; border:none; background:none; font-weight:600; color:#374151; border-radius:4px; padding:2px 4px; transition:0.2s; }
-.note button:hover { background:#e5e7eb; }
+  .article-card { transition: all 0.3s ease; }
+  .article-card:hover { transform: translateY(-4px); box-shadow: 0 8px 18px -5px rgba(0,0,0,0.1); }
+  .add-article-btn { transition: all 0.3s ease; }
+  .add-article-btn:hover { transform: scale(1.05); }
+  .dragging { opacity: 0.5; outline: 2px dashed rgba(79,70,229,0.75); transform: scale(0.98); }
+  .drag-over { border: 2px dashed rgba(16,185,129,0.9); background-color: #ecfdf5; }
+  .article-image { aspect-ratio: 2 / 3; }
+  .article-snippet { color: #4B5563; font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
 </style>
 </head>
-<body>
+<body class="bg-gray-50 min-h-screen">
 
-<aside>
-<h2>Boards</h2>
-<div class="folders" id="folders"></div>
-<button id="addFolder" class="bg-indigo-600 text-white">+ Board</button>
-<button id="saveBtn" class="bg-green-600 text-white">💾 Save</button>
-<button id="loadBtn" class="bg-yellow-500 text-white">📂 Load</button>
-</aside>
+<div class="container mx-auto px-4 py-8">
+  <header class="mb-10 text-center">
+    <h1 class="text-3xl font-bold text-indigo-800 mb-1">Shared Article Board</h1>
+  </header>
 
-<main>
-<div class="topbar">
-<button id="addNote" class="bg-indigo-500 text-white rounded px-3 py-1">+ Note</button>
-<button id="connectorToggle" class="bg-gray-200 rounded px-3 py-1">Connector</button>
-<input type="color" id="arrowColor" value="#ff0000" title="Arrow Color">
-<select id="arrowType">
-<option value="straight">Straight</option>
-<option value="dotted">Dotted</option>
-<option value="arrow-small">Small Arrow</option>
-</select>
+  <div class="flex justify-center mb-6">
+    <button onclick="openModal()" class="add-article-btn flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-full shadow-md text-sm">
+      <i data-feather="plus" class="mr-2"></i> Add New Article
+    </button>
+  </div>
+
+  <div id="articles-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+
+  <div id="empty-state" class="text-center py-20 hidden">
+    <i data-feather="file-text" class="w-12 h-12 mx-auto text-gray-300 mb-3"></i>
+    <h3 class="text-lg font-medium text-gray-500">No articles yet</h3>
+    <p class="text-gray-400 mt-1 text-sm">Add your first article to get started</p>
+  </div>
 </div>
-<div class="boardContainer" id="boardContainer"></div>
-</main>
+
+<!-- Add/Edit Modal -->
+<div id="add-article-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg p-6 w-full max-w-md">
+    <div class="flex justify-between items-center mb-4">
+      <h3 id="modal-title" class="text-lg font-semibold">Add New Article</h3>
+      <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700"><i data-feather="x"></i></button>
+    </div>
+    <form id="article-form" class="space-y-3 text-sm">
+      <div>
+        <label for="article-image" class="block font-medium mb-1">Image (optional)</label>
+        <input type="text" id="article-image" placeholder="Paste image URL" class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label for="article-title" class="block font-medium mb-1">Title</label>
+        <input type="text" id="article-title" required class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label for="article-author" class="block font-medium mb-1">Author</label>
+        <input type="text" id="article-author" required class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label for="article-content" class="block font-medium mb-1">Content</label>
+        <textarea id="article-content" rows="5" placeholder="Write the article content here" class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+      </div>
+      <div>
+        <label for="article-url" class="block font-medium mb-1">Source URL (optional)</label>
+        <input type="url" id="article-url" class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div class="pt-2">
+        <button id="submit-btn" type="submit" class="w-full bg-indigo-600 text-white py-2 px-3 rounded-md hover:bg-indigo-700 transition duration-200">Add Article</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Details Modal -->
+<div id="details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg p-6 w-full max-w-4xl shadow-lg max-h-[80vh] overflow-y-auto relative">
+    <button onclick="closeDetailsModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+      <i data-feather="x"></i>
+    </button>
+
+    <div class="flex flex-col md:flex-row gap-6">
+      <!-- Article Image -->
+      <div class="w-full md:w-1/3 flex-shrink-0">
+        <img id="details-image" src="" alt="" class="rounded-md shadow w-full h-auto object-cover">
+      </div>
+
+      <!-- Title, Author, Content, Source -->
+      <div class="flex flex-col w-full md:w-2/3">
+        <div class="mb-4">
+          <h3 id="details-title" class="text-2xl font-bold text-indigo-700 mb-1"></h3>
+          <p id="details-author" class="text-gray-600 mb-3 text-sm"></p>
+          <div id="details-link" class="mb-4"></div>
+        </div>
+        <div class="overflow-y-auto" style="max-height: calc(80vh - 150px);">
+          <h4 class="text-gray-800 font-semibold mb-2">Content</h4>
+          <p id="details-content" class="text-gray-600 leading-relaxed whitespace-pre-line"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
-const BIN_ID = '68c053e6d0ea881f40779ed8';
-const SECRET_KEY = ''; // Add JSONBin secret if private
+AOS.init(); feather.replace();
 
-let boards = {}, activeBoard=null, firstNote=null, connectorMode=false, scale=1;
+const JSON_URL = "https://api.jsonbin.io/v3/b/68c0480043b1c97be93c9ab7/latest";
+const JSON_WRITE_URL = "https://api.jsonbin.io/v3/b/68c0480043b1c97be93c9ab7";
 
-// Create Board
-function createBoard(name){
-  if(boards[name]) return;
-  const board=document.createElement('div'); board.className='board'; board.style.display='none';
-  boards[name]={element:board, connections:[]};
-  document.getElementById('boardContainer').appendChild(board);
+let articles = [];
+let editingIndex = null;
+
+const articlesContainer = document.getElementById('articles-container');
+const emptyState = document.getElementById('empty-state');
+const modal = document.getElementById('add-article-modal');
+const articleForm = document.getElementById('article-form');
+const modalTitle = document.getElementById('modal-title');
+const submitBtn = document.getElementById('submit-btn');
+
+const detailsModal = document.getElementById('details-modal');
+const detailsTitle = document.getElementById('details-title');
+const detailsAuthor = document.getElementById('details-author');
+const detailsImage = document.getElementById('details-image');
+const detailsContent = document.getElementById('details-content');
+const detailsLink = document.getElementById('details-link');
+
+function escapeHtml(str){return str?String(str).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])):"";}
+
+// Load articles
+async function loadArticles() {
+  try {
+    const res = await fetch(JSON_URL);
+    const data = await res.json();
+    articles = data.record.articles || [];
+    displayArticles();
+  } catch (e) { console.error("Failed to load articles:", e); }
 }
 
-// Switch Board
-function switchBoard(name){
-  if(activeBoard) activeBoard.element.style.display='none';
-  activeBoard = boards[name];
-  activeBoard.element.style.display='block';
-}
-
-// Add Note
-function addNote(text='', x=50, y=50, headerBg='#4f46e5'){
-  if(!activeBoard) return alert('Select a board');
-  const note=document.createElement('div'); note.className='note';
-  note.style.left=x+'px'; note.style.top=y+'px';
-
-  note.innerHTML=`
-  <div class="note-header" style="background:${headerBg}">Note
-    <div>
-      <button class="minimize-btn">_</button>
-      <input type="color" class="note-bg-picker" value="${headerBg}" title="Header Color">
-    </div>
-  </div>
-  <div class="note-toolbar">
-    <button onclick="execCmd(this,'bold')"><b>B</b></button>
-    <button onclick="execCmd(this,'italic')"><i>I</i></button>
-    <button onclick="execCmd(this,'underline')"><u>U</u></button>
-    <button onclick="execCmd(this,'insertUnorderedList')">• List</button>
-    <button onclick="execCmd(this,'insertOrderedList')">1. List</button>
-    <button onclick="insertLink()">URL</button>
-    <select onchange="execCmd(this,'fontSize',this.value)">
-      <option value="3">Normal</option>
-      <option value="4">Medium</option>
-      <option value="5">Large</option>
-    </select>
-    <input type="color" onchange="execCmd(this,'foreColor',this.value)" title="Text Color">
-  </div>
-  <div class="note-content" contenteditable="true">${text}</div>
-  <div class="preview"></div>
-  `;
-
-  activeBoard.element.appendChild(note);
-  const header = note.querySelector('.note-header');
-  const toolbar = note.querySelector('.note-toolbar');
-  const contentDiv = note.querySelector('.note-content');
-
-  // Draggable & resizable
-  interact(note).draggable({ allowFrom: header, listeners:{ move: dragMoveListener } })
-               .resizable({ edges:{left:true,right:true,bottom:true,top:true}, listeners:{ move: resizeMoveListener } });
-
-  // Minimize closes entire note
-  note.querySelector('.minimize-btn').onclick = () => note.remove();
-
-  // Header color picker only changes header
-  note.querySelector('.note-bg-picker').oninput = (e) => header.style.backgroundColor=e.target.value;
-
-  // Toolbar only affects selected text
-  toolbar.querySelectorAll('button, select, input[type=color]').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      if(window.getSelection().isCollapsed && btn.tagName!=='BUTTON'){ e.preventDefault(); }
+// Save articles
+async function saveArticles() {
+  try {
+    await fetch(JSON_WRITE_URL, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({articles})
     });
-  });
-
-  note.onclick=()=>handleConnectorClick(note);
-
-  contentDiv.addEventListener('input',()=>generatePlaceholderPreview(contentDiv,note.querySelector('.preview')));
-  generatePlaceholderPreview(contentDiv,note.querySelector('.preview'));
+  } catch (e) { console.error("Failed to save articles:", e); }
 }
 
-// URL Screenshot
-async function insertLink(){
-    const url = prompt('Enter URL:');
-    if(!url) return;
-    const screenshotURL = `https://api.thumbnail.ws/api/ab89602da8af794219b32861186c55d30fc6737e2b55/thumbnail/get?url=${encodeURIComponent(url)}&width=480`;
-    if(!activeBoard) return alert('Select a board');
-    const div = document.createElement('div'); div.className='note'; div.style.left='100px'; div.style.top='100px'; div.style.width='320px'; div.style.height='240px';
-    div.innerHTML=`
-    <div class="note-header" style="background:#4f46e5">URL Preview
-      <button class="minimize-btn">_</button>
-      <input type="color" class="note-bg-picker" value="#4f46e5" title="Header Color">
-    </div>
-    <div style="flex:1; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-      <img src="${screenshotURL}" style="width:100%; height:70%; object-fit:cover; border-radius:4px;" />
-      <p style="font-size:12px; word-break:break-word; margin-top:4px;">${url}</p>
-    </div>`;
-    activeBoard.element.appendChild(div);
-    const header = div.querySelector('.note-header');
-    interact(div).draggable({ allowFrom: header, listeners:{ move: dragMoveListener } })
-                .resizable({ edges:{left:true,right:true,bottom:true,top:true}, listeners:{ move: resizeMoveListener } });
-    div.querySelector('.minimize-btn').onclick = () => div.remove();
-    div.querySelector('.note-bg-picker').oninput = (e)=>header.style.backgroundColor=e.target.value;
+// Display articles
+function displayArticles() {
+  articlesContainer.innerHTML = '';
+  if(!articles.length){emptyState.classList.remove('hidden'); return;}
+  emptyState.classList.add('hidden');
+
+  articles.forEach((article,i)=>{
+    const card = document.createElement('div');
+    card.className='article-card bg-white rounded-md overflow-hidden shadow-sm text-sm';
+    card.setAttribute('data-index',i);
+    card.setAttribute('draggable','true');
+    card.addEventListener('dragstart', dragStart);
+    card.addEventListener('dragover', dragOver);
+    card.addEventListener('dragleave', dragLeave);
+    card.addEventListener('drop', drop);
+    card.addEventListener('dragend', dragEnd);
+
+    const img = article.image || 'http://static.photos/articles/320x480/'+(i+1);
+    const snippet = article.content ? article.content.slice(0,100)+'...' : '';
+    card.innerHTML=`
+      <div class="article-image cursor-pointer" onclick="openDetails(${i})">
+        <img src="${img}" class="w-full h-full object-cover">
+      </div>
+      <div class="p-2">
+        <h3 class="font-semibold truncate cursor-pointer" onclick="openDetails(${i})">${escapeHtml(article.title)}</h3>
+        <p class="text-gray-600 text-xs mb-1">${escapeHtml(article.author)}</p>
+        <p class="article-snippet mb-2">${escapeHtml(snippet)}</p>
+        <div class="flex justify-between items-center">
+          ${article.url?`<a href="${article.url}" target="_blank" class="text-indigo-600 hover:text-indigo-800 text-xs flex items-center"><i data-feather="link" class="w-3 h-3 mr-1"></i>Source</a>`:'<span></span>'}
+          <div class="flex space-x-2">
+            <button onclick="editArticle(${i})" class="text-blue-500 hover:text-blue-700 text-xs flex items-center"><i data-feather="edit-2" class="w-3 h-3 mr-1"></i>Edit</button>
+            <button onclick="removeArticle(${i})" class="text-red-500 hover:text-red-700 text-xs flex items-center"><i data-feather="trash-2" class="w-3 h-3 mr-1"></i>Del</button>
+          </div>
+        </div>
+      </div>`;
+    articlesContainer.appendChild(card);
+  });
+  feather.replace();
 }
 
-// Placeholder preview
-function generatePlaceholderPreview(contentDiv,preview){
-  const urlRegex=/(https?:\/\/[^\s]+)/g;
-  const urls=contentDiv.innerText.match(urlRegex);
-  preview.innerHTML='';
-  if(urls) urls.forEach(url=>{
-    const div=document.createElement('div');
-    div.innerHTML=`<strong>Preview Title</strong><br>${url}<br><em>Placeholder description</em>`;
-    preview.appendChild(div);
-  });
+// Drag & Drop
+let draggedIndex=null;
+function dragStart(e){draggedIndex=parseInt(e.currentTarget.dataset.index); e.currentTarget.classList.add('dragging');}
+function dragOver(e){e.preventDefault(); e.currentTarget.classList.add('drag-over');}
+function dragLeave(e){e.currentTarget.classList.remove('drag-over');}
+async function drop(e){
+  e.preventDefault();
+  const target=parseInt(e.currentTarget.dataset.index);
+  if(draggedIndex===target) return;
+  const moved=articles.splice(draggedIndex,1)[0];
+  articles.splice(target,0,moved);
+  await saveArticles();
+  displayArticles();
+}
+function dragEnd(){document.querySelectorAll('.article-card').forEach(c=>c.classList.remove('dragging','drag-over'));}
+
+// Add/Edit
+articleForm.addEventListener('submit', async e=>{
+  e.preventDefault();
+  const a={
+    title:articleForm.querySelector('#article-title').value,
+    author:articleForm.querySelector('#article-author').value,
+    content:articleForm.querySelector('#article-content').value,
+    image:articleForm.querySelector('#article-image').value,
+    url:articleForm.querySelector('#article-url').value
+  };
+  if(editingIndex!==null){articles[editingIndex]=a; editingIndex=null;} else {articles.push(a);}
+  await saveArticles();
+  closeModal();
+  displayArticles();
+  articleForm.reset();
+});
+
+function removeArticle(i){articles.splice(i,1); saveArticles().then(displayArticles);}
+function editArticle(i){
+  const a=articles[i];
+  articleForm.querySelector('#article-title').value=a.title;
+  articleForm.querySelector('#article-author').value=a.author;
+  articleForm.querySelector('#article-content').value=a.content;
+  articleForm.querySelector('#article-image').value=a.image;
+  articleForm.querySelector('#article-url').value=a.url;
+  modalTitle.textContent='Edit Article';
+  submitBtn.textContent='Update';
+  editingIndex=i;
+  openModal();
 }
 
-// Drag & Resize
-function dragMoveListener(e){ const t=e.target; const x=(parseFloat(t.getAttribute('data-x'))||0)+e.dx/scale; const y=(parseFloat(t.getAttribute('data-y'))||0)+e.dy/scale; t.style.transform=`translate(${x}px,${y}px)`; t.setAttribute('data-x',x); t.setAttribute('data-y',y); if(activeBoard) activeBoard.connections.forEach(c=>c.position()); }
-function resizeMoveListener(e){ const t=e.target; let w=parseFloat(t.style.width)||t.offsetWidth; let h=parseFloat(t.style.height)||t.offsetHeight; w+=e.deltaRect.width; h+=e.deltaRect.height; t.style.width=w+'px'; t.style.height=h+'px'; }
-
-// Connector
-function handleConnectorClick(note){ if(!connectorMode) return; if(!firstNote){ firstNote=note; note.style.border='2px dashed red'; } else{ const color=document.getElementById('arrowColor').value||'red'; const type=document.getElementById('arrowType').value; const opts={color:color,path:'straight',startPlug:type.includes('arrow')?'disc':null}; const line=new LeaderLine(firstNote,note,opts); activeBoard.connections.push(line); firstNote.style.border=''; firstNote=null; } }
-
-// Zoom
-document.addEventListener('wheel',e=>{ if(e.ctrlKey){ e.preventDefault(); scale+=e.deltaY<0?0.05:-0.05; scale=Math.min(Math.max(scale,0.5),3); if(activeBoard) activeBoard.element.style.transform=`scale(${scale})`; }},{passive:false});
-
-// Folders
-document.getElementById('addFolder').onclick=()=>{
-  const name=prompt('Board name:'); if(!name) return;
-  createBoard(name);
-  const folder=document.createElement('div'); folder.className='folder'; folder.textContent=name;
-  folder.onclick=()=>switchBoard(name);
-  document.getElementById('folders').appendChild(folder);
-  switchBoard(name);
-};
-
-document.getElementById('addNote').onclick=()=>addNote();
-document.getElementById('connectorToggle').onclick=()=>{connectorMode=!connectorMode; alert('Connector mode: '+connectorMode);}
-
-// Rich text
-function execCmd(el,cmd,val=null){ document.execCommand(cmd,false,val); }
-
-// JSONBin save/load
-async function saveBoards(){
-  const boardsData={};
-  Object.keys(boards).forEach(name=>{
-    const b=boards[name];
-    boardsData[name]={ notes:Array.from(b.element.querySelectorAll('.note')).map(n=>({
-      html:n.querySelector('.note-content')?.innerHTML||'',
-      x:parseFloat(n.getAttribute('data-x'))||0,
-      y:parseFloat(n.getAttribute('data-y'))||0,
-      headerBg:n.querySelector('.note-header')?.style.backgroundColor||'#4f46e5'
-    }))};
-  });
-  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
-    method:'PUT',
-    headers:{ 'Content-Type':'application/json', 'X-Master-Key':SECRET_KEY, 'X-Bin-Versioning':'false' },
-    body:JSON.stringify({boards:boardsData})
-  });
-  alert('Saved!');
+// Details modal
+function openDetails(i){
+  const a=articles[i];
+  detailsTitle.textContent=a.title;
+  detailsAuthor.textContent=a.author?'by '+a.author:'';
+  detailsContent.textContent=a.content||'No content provided.';
+  detailsImage.src=a.image||'http://static.photos/articles/320x480/'+(i+1);
+  detailsLink.innerHTML=a.url?`<a href="${a.url}" target="_blank" class="inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"><i data-feather="link" class="w-4 h-4 mr-2"></i>Read Source</a>`:`<p class="text-gray-400 text-sm">No source link</p>`;
+  detailsModal.classList.remove('hidden');
+  feather.replace();
 }
-async function loadBoards(){
-  const res=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{headers:{'X-Master-Key':SECRET_KEY}});
-  const data=await res.json();
-  const boardsData=data.record.boards||{};
-  document.getElementById('boardContainer').innerHTML='';
-  document.getElementById('folders').innerHTML='';
-  boards={}; activeBoard=null;
-  Object.keys(boardsData).forEach(name=>{
-    createBoard(name);
-    const folder=document.createElement('div'); folder.className='folder'; folder.textContent=name;
-    folder.onclick=()=>switchBoard(name); document.getElementById('folders').appendChild(folder);
-    switchBoard(name);
-    boardsData[name].notes.forEach(n=>addNote(n.html,n.x,n.y,n.headerBg));
-  });
-}
-document.getElementById('saveBtn').onclick=saveBoards;
-document.getElementById('loadBtn').onclick=loadBoards;
+function closeDetailsModal(){detailsModal.classList.add('hidden');}
+
+function openModal(){modal.classList.remove('hidden');}
+function closeModal(){modal.classList.add('hidden'); modalTitle.textContent='Add New Article'; submitBtn.textContent='Add Article'; articleForm.reset(); editingIndex=null;}
+
+// Real-time updates every 5 seconds
+setInterval(loadArticles, 5000);
+
+loadArticles();
 </script>
-
 </body>
 </html>
