@@ -28,7 +28,7 @@
   .tab-controls button:hover { background: rgba(255,255,255,0.9); }
 </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body style="background-color: #fdf6e3;" class="min-h-screen">
 
 <div class="container mx-auto px-4 py-8">
   <header class="mb-6 text-center">
@@ -49,43 +49,43 @@
   <div id="articles-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
 
   <div id="empty-state" class="text-center py-20 hidden">
-    <i data-feather="file-text" class="w-12 h-12 mx-auto text-gray-300 mb-3"></i>
-    <h3 class="text-lg font-medium text-gray-500">No articles yet</h3>
-    <p class="text-gray-400 mt-1 text-sm">Add your first article to get started</p>
+    <i data-feather="file-text" class="w-12 h-12 mx-auto text-gray-400 mb-3"></i>
+    <h3 class="text-lg font-medium text-gray-600">No articles yet</h3>
+    <p class="text-gray-500 mt-1 text-sm">Add your first article to get started</p>
   </div>
 </div>
 
 <!-- Add/Edit Modal -->
 <div id="add-article-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-lg p-6 w-full max-w-md">
+  <div class="bg-gray-100 rounded-lg p-6 w-full max-w-md shadow-md">
     <div class="flex justify-between items-center mb-4">
-      <h3 id="modal-title" class="text-lg font-semibold">Add New Article</h3>
+      <h3 id="modal-title" class="text-lg font-semibold text-gray-800">Add New Article</h3>
       <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700"><i data-feather="x"></i></button>
     </div>
     <form id="article-form" class="space-y-3 text-sm">
       <div>
-        <label for="article-image" class="block font-medium mb-1">Image (optional)</label>
-        <input type="text" id="article-image" placeholder="Paste image URL" class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <label for="article-image" class="block font-medium mb-1 text-gray-700">Image (optional)</label>
+        <input type="text" id="article-image" placeholder="Paste image URL" class="w-full px-2 py-1 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-800">
       </div>
       <div>
-        <label for="article-title" class="block font-medium mb-1">Title</label>
-        <input type="text" id="article-title" required class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <label for="article-title" class="block font-medium mb-1 text-gray-700">Title</label>
+        <input type="text" id="article-title" required class="w-full px-2 py-1 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-800">
       </div>
       <div>
-        <label for="article-author" class="block font-medium mb-1">Author</label>
-        <input type="text" id="article-author" required class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <label for="article-author" class="block font-medium mb-1 text-gray-700">Author</label>
+        <input type="text" id="article-author" required class="w-full px-2 py-1 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-800">
       </div>
       <div>
-        <label for="article-content" class="block font-medium mb-1">Content</label>
-        <textarea id="article-content" rows="5" placeholder="Write the article content here" class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        <label for="article-content" class="block font-medium mb-1 text-gray-700">Content</label>
+        <textarea id="article-content" rows="5" placeholder="Write the article content here" class="w-full px-2 py-1 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-800"></textarea>
       </div>
       <div>
-        <label for="article-url" class="block font-medium mb-1">Source URL (optional)</label>
-        <input type="url" id="article-url" class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <label for="article-url" class="block font-medium mb-1 text-gray-700">Source URL (optional)</label>
+        <input type="url" id="article-url" class="w-full px-2 py-1 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-800">
       </div>
       <div>
-        <label for="article-password" class="block font-medium mb-1">Password (optional)</label>
-        <input type="password" id="article-password" placeholder="Set a password for this article" class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <label for="article-password" class="block font-medium mb-1 text-gray-700">Password (optional)</label>
+        <input type="password" id="article-password" placeholder="Set a password for this article" class="w-full px-2 py-1 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-800">
       </div>
       <div class="pt-2">
         <button id="submit-btn" type="submit" class="w-full bg-indigo-600 text-white py-2 px-3 rounded-md hover:bg-indigo-700 transition duration-200">Add Article</button>
@@ -96,7 +96,7 @@
 
 <!-- Details Modal -->
 <div id="details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-lg p-6 w-full max-w-4xl shadow-lg max-h-[80vh] overflow-y-auto relative">
+  <div class="bg-gray-100 rounded-lg p-6 w-full max-w-4xl shadow-lg max-h-[80vh] overflow-y-auto relative">
     <button onclick="closeDetailsModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
       <i data-feather="x"></i>
     </button>
@@ -109,12 +109,12 @@
       <div class="flex flex-col w-full md:w-2/3">
         <div class="mb-4">
           <h3 id="details-title" class="text-2xl font-bold text-indigo-700 mb-1"></h3>
-          <p id="details-author" class="text-gray-600 mb-3 text-sm"></p>
+          <p id="details-author" class="text-gray-700 mb-3 text-sm"></p>
           <div id="details-link" class="mb-4"></div>
         </div>
         <div class="overflow-y-auto" style="max-height: calc(80vh - 150px);">
           <h4 class="text-gray-800 font-semibold mb-2">Content</h4>
-          <p id="details-content" class="text-gray-600 leading-relaxed whitespace-pre-line"></p>
+          <p id="details-content" class="text-gray-700 leading-relaxed whitespace-pre-line"></p>
         </div>
       </div>
     </div>
@@ -215,7 +215,7 @@ function displayArticles(){
   emptyState.classList.add('hidden');
   articles.forEach((article,i)=>{
     const card = document.createElement('div');
-    card.className='article-card bg-white rounded-md overflow-hidden shadow-sm text-sm';
+    card.className='article-card bg-gray-100 rounded-md overflow-hidden shadow-sm text-sm';
     card.setAttribute('data-index',i);
     card.setAttribute('draggable','true');
     card.addEventListener('dragstart', dragStart);
@@ -235,7 +235,7 @@ function displayArticles(){
           ${escapeHtml(article.title)}
           ${article.password?'<i data-feather="lock" class="w-3 h-3 inline-block ml-1"></i>':''}
         </h3>
-        <p class="text-gray-600 text-xs mb-1">${escapeHtml(article.author)}</p>
+        <p class="text-gray-700 text-xs mb-1">${escapeHtml(article.author)}</p>
         <p class="article-snippet mb-2">${escapeHtml(snippet)}</p>
         <div class="flex justify-between items-center">
           ${article.url?`<a href="${article.url}" target="_blank" class="text-indigo-600 hover:text-indigo-800 text-xs flex items-center"><i data-feather="link" class="w-3 h-3 mr-1"></i>Source</a>`:'<span></span>'}
@@ -315,10 +315,12 @@ function openDetails(i){
   detailsAuthor.textContent=a.author?a.author:'';
   detailsContent.textContent=a.content||'No content provided.';
   detailsImage.src=a.image||'http://static.photos/articles/320x480/'+(i+1);
-  detailsLink.innerHTML=a.url?`<a href="${a.url}" target="_blank" class="inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"><i data-feather="link" class="w-4 h-4 mr-2"></i>Read Source</a>`:`<p class="text-gray-400 text-sm">No source link</p>`;
+  detailsLink.innerHTML=a.url?`<a href="${a.url}" target="_blank" class="inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"><i data-feather="link" class="w-4 h-4 mr-2"></i>Read Source</a>`:`<p class="text-gray-500 text-sm">No source link</p>`;
   detailsModal.classList.remove('hidden'); feather.replace();
 }
 function closeDetailsModal(){detailsModal.classList.add('hidden');}
+
+// Modal functions
 function openModal(){modal.classList.remove('hidden');}
 function closeModal(){modal.classList.add('hidden'); modalTitle.textContent='Add New Article'; submitBtn.textContent='Add Article'; articleForm.reset(); editingIndex=null;}
 
