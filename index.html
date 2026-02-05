@@ -9,38 +9,43 @@
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script src="https://unpkg.com/feather-icons"></script>
 
+<!-- Favicon -->
 <link rel="icon" type="image/png" href="https://content.mycutegraphics.com/graphics/hearts/pink-heart.png" />
 
 <style>
+  body { background-color: #fdf6e3; }
   .article-card { transition: all 0.3s ease; }
-  .article-card:hover { transform: translateY(-4px); box-shadow: 0 8px 18px -5px rgba(0,0,0,0.1); }
+  .article-card:hover { transform: translateY(-4px); box-shadow: 0 8px 18px -5px rgba(0,0,0,0.12); }
   .add-article-btn { transition: all 0.3s ease; }
-  .add-article-btn:hover { transform: scale(1.05); }
+  .add-article-btn:hover { transform: scale(1.03); }
   .dragging { opacity: 0.5; outline: 2px dashed rgba(79,70,229,0.75); transform: scale(0.98); }
   .drag-over { border: 2px dashed rgba(16,185,129,0.9); background-color: #ecfdf5; }
   .article-image { aspect-ratio: 2 / 3; }
   .article-snippet { color: #4B5563; font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
-  .tab-btn { cursor: pointer; padding: 0.5rem 1rem; border-radius: 0.5rem; position: relative; display: flex; align-items: center; }
+  .tab-btn { cursor: pointer; padding: 0.5rem 1rem; border-radius: 0.5rem; position: relative; display: flex; align-items: center; margin: 4px; background: #e5e7eb; }
   .tab-btn.active { background-color: #6366F1; color: white; }
-  .tab-controls { display: none; margin-left: 4px; }
+  .tab-controls { display: none; margin-left: 6px; }
   .tab-btn:hover .tab-controls { display: inline-flex; }
-  .tab-controls button { margin-left: 2px; padding: 0 4px; border-radius: 3px; font-size: 0.7rem; background: rgba(255,255,255,0.7); color: #1f2937; }
-  .tab-controls button:hover { background: rgba(255,255,255,0.9); }
+  .tab-controls button { margin-left: 4px; padding: 0 6px; border-radius: 4px; font-size: 0.75rem; background: rgba(255,255,255,0.85); color: #1f2937; border: 1px solid rgba(0,0,0,0.06); }
+  .tab-controls button:hover { background: rgba(255,255,255,0.98); }
 </style>
 </head>
-<body style="background-color: #fdf6e3;" class="min-h-screen">
+<body class="min-h-screen">
 
 <div class="container mx-auto px-4 py-8">
   <header class="mb-6 text-center">
     <h1 class="text-3xl font-bold text-indigo-800 mb-1">Shared Article Board</h1>
+    <p class="text-sm text-gray-600">Articles are synced via JSONBin.io</p>
   </header>
 
   <!-- Tabs / Rooms -->
-  <div class="flex justify-center mb-6 space-x-2 items-center flex-wrap" id="tabs-container"></div>
-  <div class="flex justify-center mb-6">
-    <button onclick="addNewRoom()" class="flex items-center bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md text-sm mr-2">
+  <div class="flex justify-center mb-4 flex-wrap items-center" id="tabs-container"></div>
+
+  <div class="flex justify-center mb-6 space-x-2">
+    <button onclick="addNewRoom()" class="flex items-center bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md text-sm">
       <i data-feather="plus" class="mr-1"></i> New Room
     </button>
+
     <button onclick="openModal()" class="add-article-btn flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-full shadow-md text-sm">
       <i data-feather="plus" class="mr-2"></i> Add New Article
     </button>
@@ -77,7 +82,7 @@
       </div>
       <div>
         <label for="article-content" class="block font-medium mb-1 text-gray-700">Content</label>
-        <textarea id="article-content" rows="5" placeholder="Write the article content here" class="w-full px-2 py-1 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-800"></textarea>
+        <textarea id="article-content" rows="6" placeholder="Write the article content here" class="w-full px-2 py-1 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-800"></textarea>
       </div>
       <div>
         <label for="article-url" class="block font-medium mb-1 text-gray-700">Source URL (optional)</label>
@@ -100,12 +105,10 @@
     <button onclick="closeDetailsModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
       <i data-feather="x"></i>
     </button>
-
     <div class="flex flex-col md:flex-row gap-6">
       <div class="w-full md:w-1/3 flex-shrink-0">
         <img id="details-image" src="" alt="" class="rounded-md shadow w-full h-auto object-cover">
       </div>
-
       <div class="flex flex-col w-full md:w-2/3">
         <div class="mb-4">
           <h3 id="details-title" class="text-2xl font-bold text-indigo-700 mb-1"></h3>
@@ -124,13 +127,18 @@
 <script>
 AOS.init(); feather.replace();
 
-// Rooms/Tabs
-let rooms = JSON.parse(localStorage.getItem('rooms') || '["General","Tech","Health"]');
-let currentRoom = rooms[0];
-let articlesPerRoom = JSON.parse(localStorage.getItem('articlesPerRoom') || '{}');
-rooms.forEach(r => { if(!articlesPerRoom[r]) articlesPerRoom[r]=[]; });
+const JSON_URL = "https://api.jsonbin.io/v3/b/68c0480043b1c97be93c9ab7/latest";
+const JSON_WRITE_URL = "https://api.jsonbin.io/v3/b/68c0480043b1c97be93c9ab7";
+let MASTER_KEY = ""; // optional for write access
 
-// DOM elements
+let rooms = JSON.parse(localStorage.getItem('rooms') || '["General"]');
+let articlesPerRoom = JSON.parse(localStorage.getItem('articlesPerRoom') || '{}');
+rooms.forEach(r=>{ if(!articlesPerRoom[r]) articlesPerRoom[r]=[]; });
+let currentRoom = rooms[0];
+let editingIndex = null;
+
+// DOM
+const tabsContainer = document.getElementById('tabs-container');
 const articlesContainer = document.getElementById('articles-container');
 const emptyState = document.getElementById('empty-state');
 const modal = document.getElementById('add-article-modal');
@@ -143,77 +151,57 @@ const detailsAuthor = document.getElementById('details-author');
 const detailsImage = document.getElementById('details-image');
 const detailsContent = document.getElementById('details-content');
 const detailsLink = document.getElementById('details-link');
-const tabsContainer = document.getElementById('tabs-container');
 
 function escapeHtml(str){return str?String(str).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])):"";}
 
-// Render Tabs with Rename/Delete
+async function fetchServer(){try{ const res=await fetch(JSON_URL); const data=await res.json(); return data.record || null;}catch(e){console.warn(e); return null;}}
+async function saveServer(payload){if(!MASTER_KEY) return; try{ await fetch(JSON_WRITE_URL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':MASTER_KEY},body:JSON.stringify(payload)});}catch(e){console.error(e);}}
+
+async function initialSync(){
+  const serverData = await fetchServer();
+  if(serverData && (serverData.rooms || serverData.articlesPerRoom)){
+    rooms = serverData.rooms || Object.keys(serverData.articlesPerRoom||{});
+    articlesPerRoom = serverData.articlesPerRoom || {};
+    rooms.forEach(r=>{ if(!articlesPerRoom[r]) articlesPerRoom[r]=[]; });
+    localStorage.setItem('rooms', JSON.stringify(rooms));
+    localStorage.setItem('articlesPerRoom', JSON.stringify(articlesPerRoom));
+  }
+  renderTabs();
+  displayArticles();
+}
+
+function persistState(){
+  localStorage.setItem('rooms', JSON.stringify(rooms));
+  localStorage.setItem('articlesPerRoom', JSON.stringify(articlesPerRoom));
+  saveServer({rooms, articlesPerRoom});
+}
+
+// ---------- Tabs ----------
 function renderTabs(){
   tabsContainer.innerHTML='';
   rooms.forEach(r=>{
     const btn = document.createElement('div');
-    btn.className=`tab-btn ${r===currentRoom?'active':''} bg-gray-200 hover:bg-gray-300`;
-    btn.innerHTML = `<span onclick="switchRoom('${r}')">${r}</span>
+    btn.className = `tab-btn ${r===currentRoom?'active':''}`;
+    btn.innerHTML = `<span style="cursor:pointer" onclick="switchRoom('${r.replace(/'/g,"\\'")}')">${escapeHtml(r)}</span>
       <span class="tab-controls">
-        <button onclick="renameRoom('${r}')">✏️</button>
-        <button onclick="deleteRoom('${r}')">🗑️</button>
+        <button onclick="renameRoom('${r.replace(/'/g,"\\'")}')">✏️</button>
+        <button onclick="deleteRoom('${r.replace(/'/g,"\\'")}')">🗑️</button>
       </span>`;
     tabsContainer.appendChild(btn);
   });
 }
 
-// Switch room
-function switchRoom(r){currentRoom=r; renderTabs(); displayArticles();}
+function switchRoom(r){ currentRoom=r; renderTabs(); displayArticles(); }
+function addNewRoom(){ const name=prompt("New room name"); if(!name || rooms.includes(name)) return; rooms.push(name); articlesPerRoom[name]=[]; persistState(); renderTabs(); displayArticles();}
+function renameRoom(oldName){ const newName=prompt("New room name",oldName); if(!newName || rooms.includes(newName)) return; const idx=rooms.indexOf(oldName); rooms[idx]=newName; articlesPerRoom[newName]=articlesPerRoom[oldName]; delete articlesPerRoom[oldName]; if(currentRoom===oldName) currentRoom=newName; persistState(); renderTabs(); displayArticles();}
+function deleteRoom(name){ if(!confirm("Delete room?")) return; const idx=rooms.indexOf(name); rooms.splice(idx,1); delete articlesPerRoom[name]; if(rooms.length===0){rooms=["General"]; articlesPerRoom["General"]=[];} if(currentRoom===name) currentRoom=rooms[0]; persistState(); renderTabs(); displayArticles();}
 
-// Add new room
-function addNewRoom(){
-  const name = prompt("Enter new room name:");
-  if(!name) return;
-  if(rooms.includes(name)){alert("Room already exists!"); return;}
-  rooms.push(name);
-  articlesPerRoom[name] = [];
-  localStorage.setItem('rooms', JSON.stringify(rooms));
-  localStorage.setItem('articlesPerRoom', JSON.stringify(articlesPerRoom));
-  currentRoom=name;
-  renderTabs();
-  displayArticles();
-}
-
-// Rename room
-function renameRoom(oldName){
-  const newName = prompt("Enter new room name:", oldName);
-  if(!newName || rooms.includes(newName)) { alert("Invalid name or already exists"); return; }
-  const index = rooms.indexOf(oldName);
-  rooms[index]=newName;
-  articlesPerRoom[newName] = articlesPerRoom[oldName];
-  delete articlesPerRoom[oldName];
-  if(currentRoom===oldName) currentRoom=newName;
-  localStorage.setItem('rooms', JSON.stringify(rooms));
-  localStorage.setItem('articlesPerRoom', JSON.stringify(articlesPerRoom));
-  renderTabs();
-  displayArticles();
-}
-
-// Delete room
-function deleteRoom(name){
-  if(!confirm(`Delete room "${name}" and all its articles?`)) return;
-  const index = rooms.indexOf(name);
-  rooms.splice(index,1);
-  delete articlesPerRoom[name];
-  if(currentRoom===name) currentRoom=rooms[0];
-  localStorage.setItem('rooms', JSON.stringify(rooms));
-  localStorage.setItem('articlesPerRoom', JSON.stringify(articlesPerRoom));
-  renderTabs();
-  displayArticles();
-}
-
-// Display Articles
+// ---------- Articles ----------
 function displayArticles(){
-  const articles = articlesPerRoom[currentRoom];
+  const arr = articlesPerRoom[currentRoom] || [];
   articlesContainer.innerHTML='';
-  if(!articles.length){emptyState.classList.remove('hidden'); return;}
-  emptyState.classList.add('hidden');
-  articles.forEach((article,i)=>{
+  if(!arr.length){ emptyState.classList.remove('hidden'); return; } emptyState.classList.add('hidden');
+  arr.forEach((a,i)=>{
     const card = document.createElement('div');
     card.className='article-card bg-gray-100 rounded-md overflow-hidden shadow-sm text-sm';
     card.setAttribute('data-index',i);
@@ -223,109 +211,57 @@ function displayArticles(){
     card.addEventListener('dragleave', dragLeave);
     card.addEventListener('drop', drop);
     card.addEventListener('dragend', dragEnd);
-
-    const img = article.image || 'http://static.photos/articles/320x480/'+(i+1);
-    const snippet = article.content ? article.content.slice(0,100)+'...' : '';
-    card.innerHTML=`
-      <div class="article-image cursor-pointer" onclick="openDetails(${i})">
-        <img src="${img}" class="w-full h-full object-cover">
-      </div>
-      <div class="p-2">
-        <h3 class="font-semibold truncate cursor-pointer" onclick="openDetails(${i})">
-          ${escapeHtml(article.title)}
-          ${article.password?'<i data-feather="lock" class="w-3 h-3 inline-block ml-1"></i>':''}
-        </h3>
-        <p class="text-gray-700 text-xs mb-1">${escapeHtml(article.author)}</p>
-        <p class="article-snippet mb-2">${escapeHtml(snippet)}</p>
-        <div class="flex justify-between items-center">
-          ${article.url?`<a href="${article.url}" target="_blank" class="text-indigo-600 hover:text-indigo-800 text-xs flex items-center"><i data-feather="link" class="w-3 h-3 mr-1"></i>Source</a>`:'<span></span>'}
-          <div class="flex space-x-2">
-            <button onclick="editArticle(${i})" class="text-blue-500 hover:text-blue-700 text-xs flex items-center"><i data-feather="edit-2" class="w-3 h-3 mr-1"></i>Edit</button>
-            <button onclick="removeArticle(${i})" class="text-red-500 hover:text-red-700 text-xs flex items-center"><i data-feather="trash-2" class="w-3 h-3 mr-1"></i>Del</button>
-          </div>
+    const img = a.image || 'https://via.placeholder.com/320x480?text=No+Image';
+    const lockIcon = a.password ? '<i data-feather="lock" class="w-3 h-3 inline-block ml-1"></i>':'';
+    const snippet = a.content ? (a.content.slice(0,100)+(a.content.length>100?'...':'')):'';
+    card.innerHTML=`<div class="article-image cursor-pointer" onclick="openDetails(${i})"><img src="${escapeHtml(img)}" class="w-full h-full object-cover"></div>
+    <div class="p-2">
+      <h3 class="font-semibold truncate cursor-pointer" onclick="openDetails(${i})">${escapeHtml(a.title)} ${lockIcon}</h3>
+      <p class="text-gray-700 text-xs mb-1">${escapeHtml(a.author)}</p>
+      <p class="article-snippet mb-2">${escapeHtml(snippet)}</p>
+      <div class="flex justify-between items-center">
+        ${a.url?`<a href="${escapeHtml(a.url)}" target="_blank" class="text-indigo-600 hover:text-indigo-800 text-xs flex items-center"><i data-feather="link" class="w-3 h-3 mr-1"></i>Source</a>`:'<span></span>'}
+        <div class="flex space-x-2">
+          <button onclick="editArticle(${i})" class="text-blue-500 hover:text-blue-700 text-xs flex items-center"><i data-feather="edit-2" class="w-3 h-3 mr-1"></i>Edit</button>
+          <button onclick="removeArticle(${i})" class="text-red-500 hover:text-red-700 text-xs flex items-center"><i data-feather="trash-2" class="w-3 h-3 mr-1"></i>Del</button>
         </div>
-      </div>`;
+      </div>
+    </div>`;
     articlesContainer.appendChild(card);
   });
   feather.replace();
 }
 
-// Drag & Drop
+// ---------- Drag & Drop ----------
 let draggedIndex=null;
 function dragStart(e){draggedIndex=parseInt(e.currentTarget.dataset.index); e.currentTarget.classList.add('dragging');}
 function dragOver(e){e.preventDefault(); e.currentTarget.classList.add('drag-over');}
 function dragLeave(e){e.currentTarget.classList.remove('drag-over');}
-function drop(e){
-  e.preventDefault();
-  const target=parseInt(e.currentTarget.dataset.index);
-  if(draggedIndex===target) return;
-  const arr = articlesPerRoom[currentRoom];
-  const moved=arr.splice(draggedIndex,1)[0];
-  arr.splice(target,0,moved);
-  localStorage.setItem('articlesPerRoom', JSON.stringify(articlesPerRoom));
-  displayArticles();
-}
-function dragEnd(){document.querySelectorAll('.article-card').forEach(c=>c.classList.remove('dragging','drag-over'));}
+function drop(e){e.preventDefault(); const target=parseInt(e.currentTarget.dataset.index); if(draggedIndex===target) return; const arr=articlesPerRoom[currentRoom]; const moved=arr.splice(draggedIndex,1)[0]; arr.splice(target,0,moved); persistState(); displayArticles();}
+function dragEnd(){document.querySelectorAll('.article-card').forEach(c=>c.classList.remove('dragging','drag-over')); draggedIndex=null;}
 
-// Add/Edit Article
-let editingIndex = null;
+// ---------- Add/Edit ----------
 articleForm.addEventListener('submit', e=>{
   e.preventDefault();
-  const a = {
-    title: articleForm.querySelector('#article-title').value,
-    author: articleForm.querySelector('#article-author').value,
-    content: articleForm.querySelector('#article-content').value,
-    image: articleForm.querySelector('#article-image').value,
-    url: articleForm.querySelector('#article-url').value,
-    password: articleForm.querySelector('#article-password').value || null
-  };
-  if(editingIndex!==null){articlesPerRoom[currentRoom][editingIndex]=a; editingIndex=null;}
-  else articlesPerRoom[currentRoom].push(a);
-  localStorage.setItem('articlesPerRoom', JSON.stringify(articlesPerRoom));
-  closeModal(); displayArticles(); articleForm.reset();
+  const a={title:articleForm.querySelector('#article-title').value, author:articleForm.querySelector('#article-author').value, content:articleForm.querySelector('#article-content').value, image:articleForm.querySelector('#article-image').value, url:articleForm.querySelector('#article-url').value, password:articleForm.querySelector('#article-password').value};
+  if(editingIndex!==null){ articlesPerRoom[currentRoom][editingIndex]=a; editingIndex=null; } else { articlesPerRoom[currentRoom].push(a); }
+  persistState(); closeModal(); displayArticles(); articleForm.reset();
 });
 
-function removeArticle(i){
-  articlesPerRoom[currentRoom].splice(i,1);
-  localStorage.setItem('articlesPerRoom', JSON.stringify(articlesPerRoom));
-  displayArticles();
-}
-function editArticle(i){
-  const a = articlesPerRoom[currentRoom][i];
-  articleForm.querySelector('#article-title').value=a.title;
-  articleForm.querySelector('#article-author').value=a.author;
-  articleForm.querySelector('#article-content').value=a.content;
-  articleForm.querySelector('#article-image').value=a.image;
-  articleForm.querySelector('#article-url').value=a.url;
-  articleForm.querySelector('#article-password').value=a.password||'';
-  modalTitle.textContent='Edit Article';
-  submitBtn.textContent='Update';
-  editingIndex=i;
-  openModal();
-}
+function removeArticle(i){ if(!confirm("Delete this article?")) return; articlesPerRoom[currentRoom].splice(i,1); persistState(); displayArticles();}
+function editArticle(i){ const a=articlesPerRoom[currentRoom][i]; if(a.password){ const pw=prompt("Enter password to edit"); if(pw!==a.password){alert("Wrong password"); return;} } articleForm.querySelector('#article-title').value=a.title; articleForm.querySelector('#article-author').value=a.author; articleForm.querySelector('#article-content').value=a.content; articleForm.querySelector('#article-image').value=a.image; articleForm.querySelector('#article-url').value=a.url; articleForm.querySelector('#article-password').value=a.password; modalTitle.textContent='Edit Article'; submitBtn.textContent='Update'; editingIndex=i; openModal();}
 
-// Details Modal
-function openDetails(i){
-  const a = articlesPerRoom[currentRoom][i];
-  if(a.password){
-    let input = prompt("This article is password-protected. Enter the password:");
-    while(input!==a.password){ if(input===null) return; input = prompt("Wrong password. Try again:"); }
-  }
-  detailsTitle.textContent=a.title;
-  detailsAuthor.textContent=a.author?a.author:'';
-  detailsContent.textContent=a.content||'No content provided.';
-  detailsImage.src=a.image||'http://static.photos/articles/320x480/'+(i+1);
-  detailsLink.innerHTML=a.url?`<a href="${a.url}" target="_blank" class="inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"><i data-feather="link" class="w-4 h-4 mr-2"></i>Read Source</a>`:`<p class="text-gray-500 text-sm">No source link</p>`;
-  detailsModal.classList.remove('hidden'); feather.replace();
-}
+// ---------- Details ----------
+function openDetails(i){ const a=articlesPerRoom[currentRoom][i]; if(a.password){ const pw=prompt("Enter password to view"); if(pw!==a.password){alert("Wrong password"); return;} } detailsTitle.textContent=a.title; detailsAuthor.textContent=a.author?'by '+a.author:''; detailsContent.textContent=a.content||'No content.'; detailsImage.src=a.image||'https://via.placeholder.com/320x480?text=No+Image'; detailsLink.innerHTML=a.url?`<a href="${escapeHtml(a.url)}" target="_blank" class="inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"><i data-feather="link" class="w-4 h-4 mr-2"></i>Source</a>`:'<p class="text-gray-500 text-sm">No link</p>'; detailsModal.classList.remove('hidden'); feather.replace();}
 function closeDetailsModal(){detailsModal.classList.add('hidden');}
 
-// Modal functions
+// ---------- Modal ----------
 function openModal(){modal.classList.remove('hidden');}
 function closeModal(){modal.classList.add('hidden'); modalTitle.textContent='Add New Article'; submitBtn.textContent='Add Article'; articleForm.reset(); editingIndex=null;}
 
-renderTabs();
-displayArticles();
+// ---------- Auto-refresh ----------
+setInterval(initialSync, 5000);
+initialSync();
 </script>
 </body>
 </html>
